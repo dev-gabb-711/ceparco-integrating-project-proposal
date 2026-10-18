@@ -36,7 +36,7 @@ $$Grayscale = (0.299 * Red) + (0.587 * Green) + (0.114 * Blue)$$
 Converting an image to grayscale for the project would involve using 8-bit grayscale as using 16-bit or floating point would consume more memory, increasing latency. 8-bit grayscale has 256 different kinds of gray, and can take values between 0 and 255. 16-bit grayscale has 65,536 different shades of gray, which offers increased levels of intensity and differentiation between pixels. Floating point grayscale has positive floating-point pixel intensity, which in theory, has no limitations to the amount of gray levels possible, and would give high accuracy of images (Linkgit, 2024).
 
 Implementing this with SIMD:
-- The conversion formula would be converted into integer arithmetic Y = (77R + 150G +29B) >> 8 to avoid floating-point instructions, which would cost more memory.
+- The conversion formula would be converted into integer arithmetic Y = (77R + 150G +29B) >> 8 for efficient packed integer operations.
 - The RGB values will be in 256-bit YMM registers and expanded from 8-bit to 16-bit words.
 - The RGB values will be multiplied in parallel by the fixed weights across 16 pixels, summed and shifted to the right by 8 bits to perform a faster division by 256, and then the processed 16-bit values will be packed back into 8-bit byte vectors to write out 32 grayscale output pixels per iteration using vector instructions.
 
