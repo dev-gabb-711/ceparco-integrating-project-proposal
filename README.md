@@ -9,6 +9,9 @@ Maravilla, Sofia
 
 Melanio, Marion Zane
 
+## Link to Video
+[Google Drive](https://drive.google.com/file/d/1YYYIeGDxYGFoMxkN7ufSHgIsvp9HiWfq/view?usp=sharing)
+
 ## Abstract
 ScanFast aims to be a low-latency image processing engine written in C and vectorized with target-specific SIMD intrinsics with the intention of outperforming upstream acceleration filters for existing QR code decoding libraries like ZXing-C++ and Quirc. ScanFast processes raw camera frames through vector-parallelized grayscale conversion, adaptive integral-image binarization, and selective median filtering. By replacing standard sequential scalar loops with custom 256-bit vector intrinsics, the project targets a 4x to 8x acceleration in image binarization, enabling high-speed inventory automation and real-time processing of corrupted, unevenly lit printed materials.
 
