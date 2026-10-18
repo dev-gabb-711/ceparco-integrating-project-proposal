@@ -10,7 +10,7 @@ Maravilla, Sofia
 Melanio, Marion Zane
 
 ## Abstract
-ScanFast aims to be a low-latency image processing engine written in C and vectorized with target-specific SIMD intrinsics with the intention of outperforming upstream acceleration filters for existing QR code decoding libraries like ZXing-C++ and Quirc. ScanFast processes raw camera frames through vector-parallelized grayscale conversion, adaptive integral-image binarization, and morphological filtering. By replacing standard sequential scalar loops with custom 256-bit vector intrinsics, the project targets a 4x to 8x acceleration in image binarization, enabling high-speed inventory automation and real-time processing of corrupted, unevenly lit printed materials.
+ScanFast aims to be a low-latency image processing engine written in C and vectorized with target-specific SIMD intrinsics with the intention of outperforming upstream acceleration filters for existing QR code decoding libraries like ZXing-C++ and Quirc. ScanFast processes raw camera frames through vector-parallelized grayscale conversion, adaptive integral-image binarization, and selective median filtering. By replacing standard sequential scalar loops with custom 256-bit vector intrinsics, the project targets a 4x to 8x acceleration in image binarization, enabling high-speed inventory automation and real-time processing of corrupted, unevenly lit printed materials.
 
 ## Description
 ### A. Scope and Limitations 
@@ -155,6 +155,8 @@ K. Peuwnuan, K. Woraratpanya and K. Pasupa, "Modified adaptive thresholding usin
 
 Linkgit. (2024, May 18). Why use Grayscale Conversion when Processing Images? Grayscale Images. https://www.grayscaleimage.com/why-use-grayscale-conversion-when-processing-images/ 
 
-ZXing-C++. ReadBarcode.cpp and ReaderOptions.h. https://github.com/zxing-cpp/zxing-cpp
-
 Quirc. QR decoder library. https://github.com/dlbeer/quirc
+
+Zhu, Y., & Huang, C. (2012). An improved median filtering algorithm for image noise reduction. Physics Procedia, 25, 609–616. https://doi.org/10.1016/j.phpro.2012.03.133
+
+ZXing-C++. ReadBarcode.cpp and ReaderOptions.h. https://github.com/zxing-cpp/zxing-cpp
