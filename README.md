@@ -155,6 +155,6 @@ K. Peuwnuan, K. Woraratpanya and K. Pasupa, "Modified adaptive thresholding usin
 
 Linkgit. (2024, May 18). Why use Grayscale Conversion when Processing Images? Grayscale Images. https://www.grayscaleimage.com/why-use-grayscale-conversion-when-processing-images/ 
 
-ZXing-C++. ReadBarcode.cpp and ReaderOptions.h. https://github.com/zxing-cpp/zxing-cpp?
+ZXing-C++. ReadBarcode.cpp and ReaderOptions.h. https://github.com/zxing-cpp/zxing-cpp
 
-Quirc. QR decoder library. https://github.com/dlbeer/quirc?
+Quirc. QR decoder library. https://github.com/dlbeer/quirc
