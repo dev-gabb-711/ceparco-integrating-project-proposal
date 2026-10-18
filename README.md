@@ -124,7 +124,7 @@ ScanFast will be developed using C and x86-64 Assembly language on a compatible 
 
 The project will implement image preprocessing using two approaches: a sequential implementation in C and an optimized implementation using SIMD with AVX2 instructions. The sequential implementation will serve as the baseline for evaluating the performance of the parallelized version. Both implementations will perform the same image-processing operation to ensure a fair comparison.
 
-The initial image-processing operation will be grayscale conversion, which transforms color pixel values into grayscale values. If time permits, thresholding may be added as a second operation to convert grayscale images into black-and-white images. These operations will be applied to QR code images before passing them to an existing QR code decoding library.
+The initial image-processing operations will be grayscale conversion, adaptive image binarization, and denoising. These operations will be applied to QR code images by AVX2 vectorization before passing them to an existing QR code decoding library.
 
 For the AVX2 implementation, 256-bit vector registers will be used to process multiple pixel values in a single vector operation. For example, a 256-bit vector can contain 32 eight-bit values. The implementation will process groups of pixels using AVX2 instructions, while any remaining pixels that do not form a complete vector will be processed using a scalar loop. The program will also check whether the target processor supports AVX2 before executing the optimized implementation.
 
