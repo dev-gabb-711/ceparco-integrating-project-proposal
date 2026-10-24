@@ -15,6 +15,8 @@ Melanio, Marion Zane
 ## Abstract
 ScanFast aims to be a low-latency image processing engine written in C and vectorized with target-specific SIMD intrinsics with the intention of outperforming upstream acceleration filters for existing QR code decoding libraries like ZXing-C++ and Quirc. ScanFast processes raw camera frames through vector-parallelized grayscale conversion, adaptive integral-image binarization, and selective median filtering. By replacing standard sequential scalar loops with custom 256-bit vector intrinsics, the project targets a 4x to 8x acceleration in image binarization, enabling high-speed inventory automation and real-time processing of corrupted, unevenly lit printed materials.
 
+<mark>ScanFast is an image preprocessing program written in C and x86-64 Assembly that aims to improve the processing speed of QR code images before they are passed to an existing QR code decoder such as Quirc. The project focuses on AVX2 SIMD optimization of resolution-adaptive Sauvola binarization, which converts grayscale images into black-and-white images using local image statistics. Grayscale conversion and selective median filtering will serve as supporting preprocessing steps. A sequential C implementation will be used as the baseline and compared with the AVX2-optimized implementation in terms of execution time, output correctness, and QR code decoding success rate. The project will test images under different conditions, including clean images, salt-and-pepper noise, and uneven lighting.</mark>
+
 ## Description
 ### A. Scope and Limitations 
 The project aims to use an existing decoder instead of making a QR recognition engine from scratch. It will not find, orient, or parse the bit-matrix data of QR codes. 
@@ -73,6 +75,24 @@ $$R_s \ge C \times i(x, y)$$
 
 $$i’$$ is any point at $$(x,y)$$ on the complementary gray scale image and $$R’_s$$ is the $$R_s$$ at $(x,y)$. For a low-intensity image, all values are calculated from the local mean in a specified area ($$R$$). 
 
+<mark>Binarization converts a grayscale image into a black-and-white image by classifying each pixel as either black or white. This step is important for QR code processing because uneven lighting can make a single global threshold unreliable. ScanFast will use Sauvola's adaptive binarization algorithm, which calculates a local threshold based on the mean and standard deviation of pixel intensities within a surrounding window (Sauvola & Pietikäinen, 2000).</mark>
+
+<mark>The size of the local window will adapt to the input image dimensions. For each pixel, the algorithm will use integral images to calculate the local sum and squared sum efficiently. These values will be used to calculate the local mean and variance, from which the local standard deviation and Sauvola threshold can be determined. Two integral images will be maintained: one containing the sum of pixel intensities and another containing the sum of squared pixel intensities.</mark>
+
+<mark>The Sauvola threshold is calculated using:</mark>
+
+<mark>$$T(x,y)=\mu(x,y)\left[1+k\left(\frac{\sigma(x,y)}{R}-1\right)\right]$$</mark>
+
+<mark>where \(\mu(x,y)\) is the local mean, \(\sigma(x,y)\) is the local standard deviation, \(R\) is the dynamic range of standard deviation, and \(k\) is a parameter that controls the threshold adjustment. The values of \(k\), \(R\), and the rule for selecting the window size will be specified and tested during implementation.</mark>
+
+<mark>The main SIMD optimization will focus on the Sauvola binarization pipeline. AVX2 instructions will be used to accelerate integral-image calculations and evaluate the threshold for multiple pixels in parallel. The integral-image implementation must correctly handle prefix sums across vector boundaries, including the two 128-bit halves of a 256-bit YMM register, as well as across rows. The implementation will also account for accumulator limits when storing sums and squared sums.</mark>
+
+<mark>For areas with very low local contrast, the implementation will use a defined variance-floor condition to avoid unstable threshold calculations. The fallback threshold and its parameters will be specified and tested during implementation rather than assumed to be part of the standard Sauvola formula.</mark>
+
+<mark>After thresholding, the output will be converted into the pixel representation required by the next stage. If a bit-packed output is used internally, an integration step will ensure that it is converted to the format expected by Quirc. The project will evaluate the correctness of the binarized output and its effect on QR code decoding.</mark>
+
+<mark>Although grayscale conversion, median filtering, and integral-image operations can also be accelerated using SIMD, these will not be treated as separate principal optimization targets. The main performance evaluation will focus on the AVX2-optimized Sauvola binarization stage.</mark>
+
 ### D. Comparison with Existing Implementations
 There are already existing libraries that can scan and decode QR codes, such as ZXing-C++ and Quirc. However, ScanFast focuses on improving the image preprocessing stage before the QR code is scanned. Instead of creating its own QR code decoder, it aims to make image processing faster using AVX2 SIMD instructions and improve the quality of images with noise and uneven lighting.
 
@@ -83,6 +103,16 @@ Quirc is a lightweight QR code scanning library written in C. It accepts an 8-bi
 ScanFast differs from these libraries because its main purpose is to improve image preprocessing rather than perform QR code detection and decoding itself. It will use a sequential C implementation as the baseline and compare it with an AVX2-optimized implementation. The preprocessing steps will include grayscale conversion, adaptive binarization, and selective median filtering. After preprocessing, the resulting image will be passed to an existing QR code decoder, with Quirc as the initial integration target.
 
 To compare the implementations, the project will test QR code images under different conditions, including clear images, images with salt-and-pepper noise, and images with uneven lighting. The results will be evaluated based on processing time, CPU clock cycles per pixel, and QR code decoding success rate before and after applying ScanFast. This will help determine whether the proposed implementation can process images faster and improve QR code scanning results compared with the existing approaches.
+
+There are existing libraries that can detect and decode QR codes, such as ZXing-C++ and Quirc. ScanFast focuses on preprocessing QR code images before they are passed to an existing decoder, rather than implementing QR code detection and decoding from scratch.
+
+ZXing-C++ supports different barcode formats, including QR codes, and includes binarization methods such as Hybrid Binarizer. Hybrid Binarizer uses local image regions to help handle uneven lighting. ScanFast will instead implement <mark>resolution-adaptive Sauvola binarization using integral images, with the main optimization effort focused on accelerating this stage using AVX2 SIMD instructions.</mark> The project will compare the resulting processing performance and QR code decoding success under different image conditions.
+
+Quirc is a lightweight QR code decoding library written in C. It accepts grayscale image data and performs its own processing to detect and decode QR codes. ScanFast will preprocess the image before passing it to Quirc, allowing the project to test whether Sauvola binarization and the supporting denoising step improve decoding results for images affected by noise or uneven lighting.
+
+<mark>SIMD implementations of operations such as grayscale conversion, median filtering, and integral-image construction already exist. Therefore, ScanFast will not claim that vectorizing these operations is, by itself, a new contribution. Instead, the project will focus on implementing and evaluating its specific resolution-adaptive Sauvola binarization pipeline and integrating its output with Quirc.</mark>
+
+The project will compare a sequential C implementation with an AVX2-optimized implementation using the same set of QR code images. The evaluation will measure processing time, CPU clock cycles per pixel, output correctness, and QR code decoding success rate. This will help determine whether the optimized binarization stage improves performance while maintaining useful preprocessing results.
 
 ### E. Outputs 
 The project is expected to produce a working prototype of ScanFast, an image preprocessing program written in C and optimized using AVX2 SIMD instructions. It will process QR code images before passing them to an existing QR code decoder. The expected outputs are the following:
@@ -121,6 +151,41 @@ The final output will be a working prototype that connects ScanFast to an existi
 
 The prototype and its test results will be used to evaluate the performance of the sequential C and AVX2 implementations, as well as the effect of preprocessing on QR code decoding success. Overall, the project aims to demonstrate whether AVX2-based image preprocessing can reduce processing time while helping existing QR code decoders handle degraded images.
 
+The project is expected to produce a working prototype of ScanFast, an image preprocessing program written in C and optimized using AVX2 SIMD instructions. It will process QR code images before passing the preprocessed data to an existing QR code decoder. The expected outputs are the following:
+
+1. Preprocessed Image
+
+   The program will produce a black-and-white representation of the input QR code image after preprocessing. The internal representation may use 1 bit per pixel or 8-bit binary values, depending on the implementation. <mark>Before the image is passed to Quirc, the program will ensure that the output is converted into the input representation required by the decoder.</mark>
+
+   The resulting images will be tested using clean QR codes, images with salt-and-pepper noise, and images with uneven lighting. These tests will help determine whether the preprocessing steps preserve important QR code patterns and improve decoding results.
+
+2. Performance Benchmark Report
+
+   The project will produce a report comparing the sequential C implementation with the AVX2-optimized implementation. The report will include:
+
+   - Processing time, measured in milliseconds per megapixel.
+   - CPU clock cycles per pixel (CPK).
+   - Speedup, calculated by dividing the sequential C execution time by the AVX2 execution time.
+   - Output correctness between the sequential and AVX2 implementations.
+
+   <mark>The principal performance comparison will focus on the Sauvola binarization stage. Other preprocessing steps will be included as needed to evaluate the complete pipeline, but they will not be treated as separate principal optimization targets.</mark>
+
+3. QR Code Decoding Success Rate
+
+   The project will compare QR code decoding success before and after applying ScanFast's preprocessing. The tests will use the same dataset of QR code images, including images affected by salt-and-pepper noise and uneven lighting.
+
+   The decoding success rate will be calculated using the following formula:
+
+   $$\text{Success Rate}=\frac{\text{Successfully Decoded QR Codes}}{\text{Total QR Codes Tested}}\times100\%$$
+
+   The results will show the percentage of QR codes successfully decoded from the original images and the preprocessed images. This will help determine whether the preprocessing pipeline improves decoding success under the tested conditions.
+
+4. Integrated Prototype
+
+   The final output will be a working prototype that connects ScanFast to an existing QR code decoder, with Quirc as the initial integration target. It will demonstrate the process of loading an image, applying preprocessing, converting the result into the required input format, and passing it to the decoder.
+
+   The prototype and its test results will be used to evaluate the performance of the sequential C and AVX2 implementations, as well as the effect of preprocessing on QR code decoding success.
+
 ## Implementation
 ScanFast will be developed using C and x86-64 Assembly language on a compatible computer system. C will handle image loading, memory management, execution-time measurement, and integration with an existing QR code decoding library, such as Quirc. NASM will be used to assemble the x86-64 Assembly code, while GCC will compile the C source code and link the required components. The development environment and libraries will be selected based on compatibility with the group's hardware and software setup.
 
@@ -136,17 +201,53 @@ The preprocessed images will then be evaluated using an existing QR code decoder
 
 The expected outcome is a working prototype that demonstrates the use of AVX2 data-level parallelism in QR code image preprocessing. The project will analyze whether the Assembly implementation improves preprocessing performance compared with the sequential C baseline while maintaining output correctness and supporting QR code decoding.
 
-## Midproject Milestones 
-### Milestone 1 — Baseline Infrastructure & Dataset Setup:
-Build a test harness in C loading test images (clean, salt-and-pepper, uneven lighting).
-Integrate baseline Quirc library and establish scalar execution performance baseline.
-### Milestone 2 — SIMD Grayscale & Selective Denoising Kernel:
-Implement vector-accelerated RGB-to-Grayscale conversion and selective median filtering using AVX2 intrinsics.
-### Milestone 3 — SIMD Adaptive Local Binarization:
-Implement vector-accelerated integral image thresholding.
-### Milestone 4 — Integration and Benchmarking:
-Connect ScanFast preprocessor output directly to Quirc search engine.
-Generate benchmarking outputs.
+ScanFast will be developed using C and x86-64 Assembly language on a compatible computer system. C will handle image loading, memory management, execution-time measurement, and integration with an existing QR code decoding library, such as Quirc. NASM will be used to assemble the x86-64 Assembly code, while GCC will compile the C source code and link the required components. The program will check whether the target processor supports AVX2 before executing the optimized implementation.
+
+The project will include three preprocessing operations: grayscale conversion, selective denoising, and adaptive binarization. Grayscale conversion will transform RGB pixels into 8-bit grayscale values using the integer approximation \(Y=(77R+150G+29B)>>8\). Selective denoising will use a selective median filtering algorithm inspired by Zhu and Huang (2012). It will examine a pixel and its 3×3 neighborhood, compare the pixel's intensity with the neighborhood average, and replace the pixel with the neighborhood median if the absolute difference exceeds a selected threshold. The threshold will be evaluated during testing.
+
+<mark>The principal SIMD optimization target will be resolution-adaptive Sauvola binarization. The sequential C implementation will serve as the baseline, while the AVX2 implementation will accelerate the binarization pipeline using integral images and vectorized threshold calculations. Two integral images will be used to obtain the local sum and squared sum needed to calculate the local mean and standard deviation.</mark>
+
+<mark>The implementation will define the rule for selecting the window size based on image dimensions, as well as the Sauvola parameters and the low-variance fallback condition. The integral-image implementation will account for prefix-sum propagation across vector boundaries and image rows. It will also check that the selected accumulator types can safely store the required sums and squared sums for the supported image dimensions.</mark>
+
+The AVX2 implementation will process multiple pixels in parallel using 256-bit YMM registers. The number of pixels processed per iteration will depend on the data type and operations being performed. Any remaining pixels that do not fill a complete vector will be processed using a scalar loop.
+
+<mark>After binarization, the program will convert the output into the representation required by Quirc. The project will test both output correctness and the effect of preprocessing on QR code decoding success.</mark>
+
+To evaluate performance, both implementations will process the same QR code images under identical testing conditions. Execution time will be measured across multiple runs. Speedup will be calculated using the following formula:
+
+$$\text{Speedup}=\frac{\text{Sequential C Execution Time}}{\text{AVX2 Execution Time}}$$
+
+The evaluation will report processing time, speedup, output correctness, and QR code decoding success rate. <mark>The main performance analysis will focus on the Sauvola binarization stage, while the complete preprocessing pipeline will be evaluated to determine whether the changes are useful when integrated with Quirc.</mark>
+
+## Midproject Milestones
+
+### Milestone 1 — Baseline Infrastructure & Dataset Setup
+
+- <mark>Build a C test harness to load QR code images under different conditions, including clean images, salt-and-pepper noise, and uneven lighting.</mark>
+- <mark>Integrate the Quirc QR decoding library and establish the sequential C baseline.</mark>
+- <mark>Record baseline processing time and QR code decoding success.</mark>
+
+### Milestone 2 — Supporting Preprocessing Steps
+
+- <mark>Implement sequential C grayscale conversion using integer arithmetic.</mark>
+- <mark>Implement the selective median filter for salt-and-pepper noise.</mark>
+- <mark>Verify that the supporting preprocessing steps produce valid output.</mark>
+
+### Milestone 3 — AVX2-Optimized Sauvola Binarization
+
+- <mark>Implement resolution-adaptive window selection based on image dimensions.</mark>
+- <mark>Implement the sequential C version of the dual integral images, storing the sum of pixel intensities and the sum of squared intensities.</mark>
+- <mark>Implement the AVX2 version of integral-image construction, ensuring correct prefix sums across vector boundaries and image rows.</mark>
+- <mark>Implement AVX2 vectorized Sauvola threshold calculations, including the low-variance fallback condition.</mark>
+- <mark>Verify the binarized output against the sequential C implementation.</mark>
+
+### Milestone 4 — Integration, Benchmarking & Final Analysis
+
+- <mark>Connect the preprocessed output to Quirc using the input format required by the decoder.</mark>
+- <mark>Run tests on the selected QR code dataset.</mark>
+- <mark>Compare sequential C and AVX2 execution time, speedup, output correctness, and QR code decoding success.</mark>
+- <mark>Summarize the results and limitations of the implementation.</mark>
+
 ## References
 What is Grayscale? Definition, Uses, and Applications in Digital Imaging | Lenovo US. (2023, May 28). https://www.lenovo.com/us/en/glossary/grayscale/?orgRef=https%253A%252F%252Fwww.google.com%252F&srsltid=AU7gw4VwlSKMHXb5wpxaZlYoPk4ofiV7Azv_BR5A3UgkMDAu037RpcC7
 
